@@ -31,20 +31,11 @@
 
 package com.c2_systems.benchmark;
 
-import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.lang.Math;
 
-import org.apache.commons.math3.filter.DefaultMeasurementModel;
-import org.apache.commons.math3.filter.DefaultProcessModel;
-import org.apache.commons.math3.filter.KalmanFilter;
-import org.apache.commons.math3.filter.MeasurementModel;
-import org.apache.commons.math3.filter.ProcessModel;
-import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.random.JDKRandomGenerator;
-import org.apache.commons.math3.random.RandomGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -59,8 +50,8 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Func2;
+import rx.Scheduler;
+import rx.schedulers.Schedulers;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -72,226 +63,57 @@ import rx.functions.Func2;
 
 public class MyBenchmark {
 
-    private Worker workerKalman;
-    private Worker workerKalmanRx;
-
-	private Observable<Object> fullKalman() {
-	    return Observable.fromCallable(new Callable<Object>() {
-	        @Override
-	        public Object call() throws Exception {
-    			// discrete time interval
-    			double dt = 0.1d;
-    			// position measurement noise (meter)
-    			double measurementNoise = 10d;
-    			// acceleration noise (meter/sec^2)
-    			double accelNoise = 0.2d;
-
-    			//local var to return
-    			double velocity = 0d;
-
-    			// A = [ 1 dt ]
-    			//        			     [ 0  1 ]
-    			RealMatrix A = new Array2DRowRealMatrix(new double[][] { { 1, dt }, { 0, 1 } });
-    			// B = [ dt^2/2 ]
-    			//     [ dt     ]
-    			RealMatrix B = new Array2DRowRealMatrix(new double[][] { { Math.pow(dt, 2d) / 2d }, { dt } });
-    			// H = [ 1 0 ]
-    			RealMatrix H = new Array2DRowRealMatrix(new double[][] { { 1d, 0d } });
-    			// x = [ 0 0 ]
-    			RealVector x = new ArrayRealVector(new double[] { 0, 0 });
-
-    			RealMatrix tmp = new Array2DRowRealMatrix(new double[][] {
-    			    { Math.pow(dt, 4d) / 4d, Math.pow(dt, 3d) / 2d },
-    			    { Math.pow(dt, 3d) / 2d, Math.pow(dt, 2d) } });
-    			// Q = [ dt^4/4 dt^3/2 ]
-    			//     [ dt^3/2 dt^2   ]
-    			RealMatrix Q = tmp.scalarMultiply(Math.pow(accelNoise, 2));
-    			// P0 = [ 1 1 ]
-    			//      [ 1 1 ]
-    			RealMatrix P0 = new Array2DRowRealMatrix(new double[][] { { 1, 1 }, { 1, 1 } });
-    			// R = [ measurementNoise^2 ]
-    			RealMatrix R = new Array2DRowRealMatrix(new double[] { Math.pow(measurementNoise, 2) });
-
-    			// constant control input, increase velocity by 0.1 m/s per cycle
-    			RealVector u = new ArrayRealVector(new double[] { 0.1d });
-
-    			ProcessModel pm = new DefaultProcessModel(A, B, Q, x, P0);
-    			MeasurementModel mm = new DefaultMeasurementModel(H, R);
-
-    			KalmanFilter filter = new KalmanFilter(pm, mm);
-
-    			RandomGenerator rand = new JDKRandomGenerator();
-
-    			RealVector tmpPNoise = new ArrayRealVector(new double[] { Math.pow(dt, 2d) / 2d, dt });
-    			RealVector mNoise = new ArrayRealVector(1);
-
-    			// iterate 60 steps
-    			for (int i = 0; i < 60; i++) {
-
-    			    filter.predict(u);
-
-    			    // simulate the process
-    			    RealVector pNoise = tmpPNoise.mapMultiply(accelNoise * rand.nextGaussian());
-    			    // x = A * x + B * u + pNoise
-    			    x = A.operate(x).add(B.operate(u)).add(pNoise);
-    			    // simulate the measurement
-    			    mNoise.setEntry(0, measurementNoise * rand.nextGaussian());
-    			    // z = H * x + m_noise
-    			    RealVector z = H.operate(x).add(mNoise);
-    			    filter.correct(z);
-
-    			    //double position = filter.getStateEstimation()[0];
-    			    velocity = filter.getStateEstimation()[1];
-
-    			}
-
-    			return velocity;
-	        }
-	    });
-	};
-
-	private Observable<Object> processModelKalman() {
-	    return Observable.fromCallable(new Callable<Object>() {
-	        @Override
-	        public Object call() throws Exception {
-    			// discrete time interval
-    			double dt = 0.1d;
-    			// acceleration noise (meter/sec^2)
-    			double accelNoise = 0.2d;
-
-    			// A = [ 1 dt ]
-    			//        			     [ 0  1 ]
-    			RealMatrix A = new Array2DRowRealMatrix(new double[][] { { 1, dt }, { 0, 1 } });
-    			// B = [ dt^2/2 ]
-    			//     [ dt     ]
-    			RealMatrix B = new Array2DRowRealMatrix(new double[][] { { Math.pow(dt, 2d) / 2d }, { dt } });
-
-    			// x = [ 0 0 ]
-    			RealVector x = new ArrayRealVector(new double[] { 0, 0 });
-
-    			RealMatrix tmp = new Array2DRowRealMatrix(new double[][] {
-    			    { Math.pow(dt, 4d) / 4d, Math.pow(dt, 3d) / 2d },
-    			    { Math.pow(dt, 3d) / 2d, Math.pow(dt, 2d) } });
-    			// Q = [ dt^4/4 dt^3/2 ]
-    			//     [ dt^3/2 dt^2   ]
-    			RealMatrix Q = tmp.scalarMultiply(Math.pow(accelNoise, 2));
-    			// P0 = [ 1 1 ]
-    			//      [ 1 1 ]
-    			RealMatrix P0 = new Array2DRowRealMatrix(new double[][] { { 1, 1 }, { 1, 1 } });
-
-    			ProcessModel pm = new DefaultProcessModel(A, B, Q, x, P0);
-
-    			return pm;
-
-	        }
-	    });
-	};
-
-	private Observable<Object> measurementModelKalman() {
-	    return Observable.fromCallable(new Callable<Object>() {
-	        @Override
-	        public Object call() throws Exception {
-
-    			// position measurement noise (meter)
-    			double measurementNoise = 10d;
-
-    			// H = [ 1 0 ]
-    			RealMatrix H = new Array2DRowRealMatrix(new double[][] { { 1d, 0d } });
-    			// R = [ measurementNoise^2 ]
-    			RealMatrix R = new Array2DRowRealMatrix(new double[] { Math.pow(measurementNoise, 2) });
-
-    			MeasurementModel mm = new DefaultMeasurementModel(H, R);
-
-    			return mm;
-	        }
-	    });
-	};
+    private Worker workerOne;
+    private Worker workerTwo;
 
 	public interface Worker {
         void work();
     }
 
+	private int intenseCalculation(int i) {
+		Double d = Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(Math.atan(123456789.123456789d))))))))));
+		return d.intValue() + i;
+	}
+
     @Setup
     public void setup(final Blackhole bh) {
 
-        workerKalman = new Worker() {
+    	workerOne = new Worker() {
 
 			@Override
         	public void work() {
 
-				Observable.just(fullKalman()).doOnCompleted(new Action0() {
+				int threadCt = 1;
 
-					@Override
-					public void call() {
+				ExecutorService executor = Executors.newFixedThreadPool(threadCt);
+				Scheduler scheduler = Schedulers.from(executor);
 
-					}
+				Observable.range(1,1000).flatMap(i -> Observable.just(i)
+					    .subscribeOn(scheduler)
+					    .map(i2 -> intenseCalculation(i2))
+					).doAfterTerminate(() -> executor.shutdown())
+					.subscribe();
 
-				}).subscribe();
 
         	}
     	};
 
-        workerKalmanRx = new Worker() {
+    	workerTwo = new Worker() {
 
         	@Override
         	public void work() {
 
-        		Observable.zip(processModelKalman(),
-        					   measurementModelKalman(),
-        					   new Func2<Object, Object, Object>() {
+				int threadCt = Runtime.getRuntime().availableProcessors() + 1;
 
-					@Override
-					public Object call(Object pm, Object mm) {
-						double dt = 0.1d;
-						double measurementNoise = 10d;
-						// acceleration noise (meter/sec^2)
-		    			double accelNoise = 0.2d;
-		    			double velocity = 0d;
+				ExecutorService executor = Executors.newFixedThreadPool(threadCt);
+				Scheduler scheduler = Schedulers.from(executor);
 
-		    			// A = [ 1 dt ]
-		    			//     [ 0  1 ]
-		    			RealMatrix A = new Array2DRowRealMatrix(new double[][] { { 1, dt }, { 0, 1 } });
-		    			// B = [ dt^2/2 ]
-		    			//     [ dt     ]
-		    			RealMatrix B = new Array2DRowRealMatrix(new double[][] { { Math.pow(dt, 2d) / 2d }, { dt } });
-		    			// H = [ 1 0 ]
-		    			RealMatrix H = new Array2DRowRealMatrix(new double[][] { { 1d, 0d } });
-		    			// x = [ 0 0 ]
-		    			RealVector x = new ArrayRealVector(new double[] { 0, 0 });
+				Observable.range(1,1000).flatMap(i -> Observable.just(i)
+					    .subscribeOn(scheduler)
+					    .map(i2 -> intenseCalculation(i2))
+					).doAfterTerminate(() -> executor.shutdown())
+					.subscribe();
 
-		    			// constant control input, increase velocity by 0.1 m/s per cycle
-		    			RealVector u = new ArrayRealVector(new double[] { 0.1d });
-
-						KalmanFilter filter = new KalmanFilter((ProcessModel)pm, (MeasurementModel)mm);
-
-		    			RandomGenerator rand = new JDKRandomGenerator();
-
-		    			RealVector tmpPNoise = new ArrayRealVector(new double[] { Math.pow(dt, 2d) / 2d, dt });
-		    			RealVector mNoise = new ArrayRealVector(1);
-
-		    			// iterate 60 steps
-		    			for (int i = 0; i < 60; i++) {
-
-		    			    filter.predict(u);
-
-		    			    // simulate the process
-		    			    RealVector pNoise = tmpPNoise.mapMultiply(accelNoise * rand.nextGaussian());
-		    			    // x = A * x + B * u + pNoise
-		    			    x = A.operate(x).add(B.operate(u)).add(pNoise);
-		    			    // simulate the measurement
-		    			    mNoise.setEntry(0, measurementNoise * rand.nextGaussian());
-		    			    // z = H * x + m_noise
-		    			    RealVector z = H.operate(x).add(mNoise);
-		    			    filter.correct(z);
-
-		    			    //double position = filter.getStateEstimation()[0];
-		    			    velocity = filter.getStateEstimation()[1];
-
-		    			}
-
-		    			return velocity;
-					}
-				}).subscribe();
 
         	}
 
@@ -301,12 +123,12 @@ public class MyBenchmark {
 
     @Benchmark
     public void kalmanSequential() {
-        workerKalman.work();
+        workerOne.work();
     }
 
     @Benchmark
     public void kalmanRx() {
-        workerKalmanRx.work();
+        workerTwo.work();
     }
 
 
