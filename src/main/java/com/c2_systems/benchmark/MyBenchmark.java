@@ -122,12 +122,12 @@ public class MyBenchmark {
     }
 
     @Benchmark
-    public void kalmanSequential() {
+    public void oneThread() {
         workerOne.work();
     }
 
     @Benchmark
-    public void kalmanRx() {
+    public void moreThreads() {
         workerTwo.work();
     }
 
