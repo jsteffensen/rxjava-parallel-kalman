@@ -54,11 +54,11 @@ import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
-@Threads(4)
+@Threads(8)
 @State(Scope.Thread)
 
 public class MyBenchmark {
@@ -92,7 +92,7 @@ public class MyBenchmark {
 					    .subscribeOn(scheduler)
 					    .map(i2 -> intenseCalculation(i2))
 					).doAfterTerminate(() -> executor.shutdown())
-					.subscribe();
+					.subscribe(bh::consume);
 
 
         	}
@@ -112,7 +112,7 @@ public class MyBenchmark {
 					    .subscribeOn(scheduler)
 					    .map(i2 -> intenseCalculation(i2))
 					).doAfterTerminate(() -> executor.shutdown())
-					.subscribe();
+					.subscribe(bh::consume);
 
 
         	}
