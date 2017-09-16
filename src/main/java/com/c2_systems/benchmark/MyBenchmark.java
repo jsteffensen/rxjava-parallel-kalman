@@ -63,11 +63,10 @@ import rx.schedulers.Schedulers;
 
 public class MyBenchmark {
 
-    private Worker workerOne;
-    private Worker workerTwo;
+    private Worker worker;
 
 	public interface Worker {
-        void work();
+        void work(int threads);
     }
 
 	private int intenseCalculation(int i) {
@@ -78,30 +77,10 @@ public class MyBenchmark {
     @Setup
     public void setup(final Blackhole bh) {
 
-    	workerOne = new Worker() {
-
-			@Override
-        	public void work() {
-
-				int threadCt = 1;
-
-				ExecutorService executor = Executors.newFixedThreadPool(threadCt);
-				Scheduler scheduler = Schedulers.from(executor);
-
-				Observable.range(1,1000).flatMap(i -> Observable.just(i)
-					    .subscribeOn(scheduler)
-					    .map(i2 -> intenseCalculation(i2))
-					).doAfterTerminate(() -> executor.shutdown())
-					.subscribe(bh::consume);
-
-
-        	}
-    	};
-
-    	workerTwo = new Worker() {
+    	worker = new Worker() {
 
         	@Override
-        	public void work() {
+        	public void work(int threads) {
 
 				int threadCt = Runtime.getRuntime().availableProcessors() + 1;
 
@@ -123,13 +102,51 @@ public class MyBenchmark {
 
     @Benchmark
     public void oneThread() {
-        workerOne.work();
+        worker.work(1);
     }
-
     @Benchmark
-    public void moreThreads() {
-        workerTwo.work();
+    public void twoThreads() {
+        worker.work(2);
     }
-
+    @Benchmark
+    public void threeThreads() {
+        worker.work(3);
+    }
+    @Benchmark
+    public void fourThreads() {
+        worker.work(4);
+    }
+    @Benchmark
+    public void fiveThreads() {
+        worker.work(5);
+    }
+    @Benchmark
+    public void sixThreads() {
+        worker.work(6);
+    }
+    @Benchmark
+    public void sevenThreads() {
+        worker.work(7);
+    }
+    @Benchmark
+    public void eightThreads() {
+        worker.work(8);
+    }
+    @Benchmark
+    public void nineThreads() {
+        worker.work(9);
+    }
+    @Benchmark
+    public void tenThreads() {
+        worker.work(10);
+    }
+    @Benchmark
+    public void elevenThreads() {
+        worker.work(11);
+    }
+    @Benchmark
+    public void twelweThreads() {
+        worker.work(12);
+    }
 
 }
