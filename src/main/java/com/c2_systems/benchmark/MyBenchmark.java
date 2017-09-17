@@ -55,8 +55,8 @@ import rx.schedulers.Schedulers;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 100, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 20, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 1000, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 @Threads(1)
 @State(Scope.Thread)
@@ -71,6 +71,16 @@ public class MyBenchmark {
 
 	private int intenseCalculation(int i) {
 		Double d = Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(Math.atan(123456789.123456789d))))))))));
+		return d.intValue() + i;
+	}
+
+	private int semiIntenseCalculation(int i) {
+		Double d = Math.tan(Math.atan(Math.tan(Math.atan(Math.tan(123456789.123456789d)))));
+		return d.intValue() + i;
+	}
+
+	private int nonIntenseCalculation(int i) {
+		Double d = Math.tan(Math.atan(123456789.123456789d));
 		return d.intValue() + i;
 	}
 
@@ -101,52 +111,84 @@ public class MyBenchmark {
     }
 
     @Benchmark
-    public void oneThread() {
+    public void threads___1() {
         worker.work(1);
     }
     @Benchmark
-    public void twoThreads() {
+    public void threads___2() {
         worker.work(2);
     }
     @Benchmark
-    public void threeThreads() {
+    public void threads___3() {
         worker.work(3);
     }
     @Benchmark
-    public void fourThreads() {
+    public void threads___4() {
         worker.work(4);
     }
     @Benchmark
-    public void fiveThreads() {
+    public void threads___5() {
         worker.work(5);
     }
     @Benchmark
-    public void sixThreads() {
+    public void threads___6() {
         worker.work(6);
     }
     @Benchmark
-    public void sevenThreads() {
+    public void threads___7() {
         worker.work(7);
     }
     @Benchmark
-    public void eightThreads() {
+    public void threads___8() {
         worker.work(8);
     }
     @Benchmark
-    public void nineThreads() {
+    public void threads___9() {
         worker.work(9);
     }
     @Benchmark
-    public void tenThreads() {
+    public void threads__10() {
         worker.work(10);
     }
     @Benchmark
-    public void elevenThreads() {
+    public void threads__11() {
         worker.work(11);
     }
     @Benchmark
-    public void twelweThreads() {
+    public void threads__12() {
         worker.work(12);
+    }
+    @Benchmark
+    public void threads__13() {
+        worker.work(13);
+    }
+    @Benchmark
+    public void threads__14() {
+        worker.work(14);
+    }
+    @Benchmark
+    public void threads__15() {
+        worker.work(15);
+    }
+    @Benchmark
+    public void threads__16() {
+        worker.work(16);
+    }
+    @Benchmark
+    public void threads__17() {
+        worker.work(17);
+    }
+    @Benchmark
+    public void threads__18() {
+        worker.work(18);
+    }
+    @Benchmark
+    public void threads__19() {
+        worker.work(19);
+    }
+    @Benchmark
+    public void threads__20() {
+        worker.work(20);
     }
 
 }
