@@ -55,10 +55,10 @@ import rx.schedulers.Schedulers;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 100, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
-@Threads(8)
+@Threads(1)
 @State(Scope.Thread)
 
 public class MyBenchmark {

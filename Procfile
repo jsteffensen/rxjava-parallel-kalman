@@ -1,1 +1,1 @@
-web: java -jar target/benchmarks.jar
+worker: sh target/benchmarks.jar
