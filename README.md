@@ -12,6 +12,6 @@ C:\Users\xxx\workspace> cd rxjava-parallel-calc
 > java -jar target/benchmarks.jar
 ```
 to save output to .json file run with command:
-`\workspace\rxjava-parallel-calc>java -jar target/benchmarks.jar -rf json`
+`>java -jar target/benchmarks.jar -rf json`
 visualize results at:
 http://jmh.morethan.io/
