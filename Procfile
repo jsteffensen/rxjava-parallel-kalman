@@ -1,1 +1,1 @@
-worker: java -jar target/benchmarks.jar
+worker: run -jar target/benchmarks.jar
