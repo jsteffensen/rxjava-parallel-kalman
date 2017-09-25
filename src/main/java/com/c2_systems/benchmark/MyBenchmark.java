@@ -23,16 +23,15 @@ public class MyBenchmark implements Function<Integer, Integer> {
     @Param({"10000"})
     public int count;
 
-    @Param({"1", "10", "100", "1000", "10000"})
+    @Param({"100"})
     public int compute;
 
-    @Param({"1", "2", "3", "4"})
+    @Param({"3"})
     public int parallelism;
 
+
     Flowable<Integer> flatMap;
-
     Flowable<Integer> groupBy;
-
     Flowable<Integer> parallel;
 
     @Override
@@ -60,13 +59,13 @@ public class MyBenchmark implements Function<Integer, Integer> {
         }, cpu);
 
         groupBy = source.groupBy(new Function<Integer, Integer>() {
+
             int i;
             @Override
             public Integer apply(Integer v) throws Exception {
                 return (i++) % cpu;
             }
-        })
-        .flatMap(new Function<GroupedFlowable<Integer, Integer>, Publisher<Integer>>() {
+        }).flatMap(new Function<GroupedFlowable<Integer, Integer>, Publisher<Integer>>() {
             @Override
             public Publisher<Integer> apply(GroupedFlowable<Integer, Integer> g) throws Exception {
                 return g.observeOn(Schedulers.computation()).map(MyBenchmark.this);
@@ -85,6 +84,13 @@ public class MyBenchmark implements Function<Integer, Integer> {
     @Benchmark
     public void flatMap(Blackhole bh) {
         subscribe(flatMap, bh);
+    }
+
+    @Benchmark
+    public void other(Blackhole bh) {
+    	for(int i = 0; i<10000; i++) {
+			Blackhole.consumeCPU(compute);
+		}
     }
 
     @Benchmark
