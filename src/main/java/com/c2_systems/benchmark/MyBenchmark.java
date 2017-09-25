@@ -1,14 +1,22 @@
 package com.c2_systems.benchmark;
 
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-import org.reactivestreams.Publisher;
 
-import io.reactivex.*;
-import io.reactivex.flowables.GroupedFlowable;
+import io.reactivex.Flowable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
@@ -20,19 +28,18 @@ import io.reactivex.schedulers.Schedulers;
 @State(Scope.Thread)
 public class MyBenchmark implements Function<Integer, Integer> {
 
-    @Param({"10000"})
+    @Param({"100", "500", "1000", "10000"}) //10000
     public int count;
 
-    @Param({"100"})
+    @Param({"200", "600", "800", "4000"})
     public int compute;
 
-    @Param({"3"})
+    @Param({"1", "3"})
     public int parallelism;
 
-
-    Flowable<Integer> flatMap;
-    Flowable<Integer> groupBy;
     Flowable<Integer> parallel;
+    Flowable<Integer> notsoparallel;
+    Disposable another;
 
     @Override
     public Integer apply(Integer t) throws Exception {
@@ -46,33 +53,23 @@ public class MyBenchmark implements Function<Integer, Integer> {
         final int cpu = parallelism;
 
         Integer[] ints = new Integer[count];
-        Arrays.fill(ints, 777);
+        for(int i = 0; i < count; i++) {
+        	ints[i] = i;
+        };
+        //Arrays.fill(ints, 777);
 
         Flowable<Integer> source = Flowable.fromArray(ints);
 
-        flatMap = source.flatMap(new Function<Integer, Publisher<Integer>>() {
-            @Override
-            public Publisher<Integer> apply(Integer v) throws Exception {
-                return Flowable.just(v).subscribeOn(Schedulers.computation())
-                        .map(MyBenchmark.this);
-            }
-        }, cpu);
 
-        groupBy = source.groupBy(new Function<Integer, Integer>() {
 
-            int i;
-            @Override
-            public Integer apply(Integer v) throws Exception {
-                return (i++) % cpu;
-            }
-        }).flatMap(new Function<GroupedFlowable<Integer, Integer>, Publisher<Integer>>() {
-            @Override
-            public Publisher<Integer> apply(GroupedFlowable<Integer, Integer> g) throws Exception {
-                return g.observeOn(Schedulers.computation()).map(MyBenchmark.this);
-            }
-        });
+        /*another = source.groupBy((i) -> 0 == (int)i % 2 ? "EVEN" : "ODD")
+                .subscribe((group) -> {
+                    System.out.println("Key " + ((GroupedFlowable<String,Integer>)group).getKey());
+                    ((GroupedFlowable<String,Integer>)group).subscribe((x) -> System.out.println(((GroupedFlowable<String,Integer>)group).getKey() + ": " + x));
+                });*/
 
         parallel = source.parallel(cpu).runOn(Schedulers.computation()).map(this).sequential();
+        notsoparallel = source.map(this);
     }
 
     void subscribe(Flowable<Integer> f, Blackhole bh) {
@@ -81,25 +78,19 @@ public class MyBenchmark implements Function<Integer, Integer> {
         consumer.await(count);
     }
 
-    @Benchmark
-    public void flatMap(Blackhole bh) {
-        subscribe(flatMap, bh);
-    }
-
-    @Benchmark
     public void other(Blackhole bh) {
-    	for(int i = 0; i<10000; i++) {
+    	for(int i = 0; i<count; i++) {
 			Blackhole.consumeCPU(compute);
 		}
     }
 
     @Benchmark
-    public void groupBy(Blackhole bh) {
-        subscribe(groupBy, bh);
+    public void parallel(Blackhole bh) {
+        subscribe(parallel, bh);
     }
 
     @Benchmark
-    public void parallel(Blackhole bh) {
-        subscribe(parallel, bh);
+    public void notsoparallel(Blackhole bh) {
+        subscribe(notsoparallel, bh);
     }
 }
