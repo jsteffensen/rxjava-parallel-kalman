@@ -28,13 +28,13 @@ import io.reactivex.schedulers.Schedulers;
 @State(Scope.Thread)
 public class MyBenchmark implements Function<Integer, Integer> {
 
-    @Param({"100", "500", "1000", "10000"}) //10000
+    @Param({"10", "1000", "10000"}) //10000
     public int count;
 
-    @Param({"200", "600", "800", "4000"})
+    @Param({"200", "4000", "20000"})
     public int compute;
 
-    @Param({"1", "3"})
+    @Param({"1", "3", "9"})
     public int parallelism;
 
     Flowable<Integer> parallel;
