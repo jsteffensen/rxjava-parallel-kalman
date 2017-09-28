@@ -28,10 +28,10 @@ import io.reactivex.schedulers.Schedulers;
 @State(Scope.Thread)
 public class MyBenchmark implements Function<Integer, Integer> {
 
-    @Param({"10", "1000", "10000"}) //10000
+    @Param({"10000"}) //10000
     public int count;
 
-    @Param({"200", "4000", "20000"})
+    @Param({"4000", "20000"})
     public int compute;
 
     @Param({"1", "3", "9"})
