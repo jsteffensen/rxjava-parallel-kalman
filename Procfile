@@ -1,1 +1,1 @@
-worker: java -jar target/benchmarks.jar -rf json
+worker: java -jar target/benchmarks.jar
