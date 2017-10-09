@@ -1,5 +1,9 @@
 package com.c2_systems.benchmark;
 
+import java.util.Arrays;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -37,9 +41,12 @@ public class MyBenchmark implements Function<Integer, Integer> {
     @Param({"3"})
     public int parallelism;
 
+    Integer[] ints;
+
+    Random randomNum = new Random();
+
     Flowable<Integer> parallel;
     Flowable<Integer> notsoparallel;
-    Disposable another;
 
     @Override
     public Integer apply(Integer t) throws Exception {
@@ -51,16 +58,15 @@ public class MyBenchmark implements Function<Integer, Integer> {
     public void setup() {
 
         final int cpu = parallelism;
+        ints = new Integer[count];
 
-        Integer[] ints = new Integer[count];
-        for(int i = 0; i < count; i++) {
-        	ints[i] = i;
-        };
-        //Arrays.fill(ints, 777);
+        for(int i = 0; i<count; i++) {
+        	ints[i] = randomNum.nextInt(2);
+        }
+
+        Arrays.fill(ints, 777);
 
         Flowable<Integer> source = Flowable.fromArray(ints);
-
-
 
         /*another = source.groupBy((i) -> 0 == (int)i % 2 ? "EVEN" : "ODD")
                 .subscribe((group) -> {
@@ -69,8 +75,12 @@ public class MyBenchmark implements Function<Integer, Integer> {
                 });*/
 
         parallel = source.parallel(cpu).runOn(Schedulers.computation()).map(this).sequential();
+
         notsoparallel = source.map(this);
+
+
     }
+
 
     void subscribe(Flowable<Integer> f, Blackhole bh) {
         PerfAsyncConsumer consumer = new PerfAsyncConsumer(bh);
@@ -92,5 +102,25 @@ public class MyBenchmark implements Function<Integer, Integer> {
     @Benchmark
     public void notsoparallel(Blackhole bh) {
         subscribe(notsoparallel, bh);
+    }
+
+
+    @Benchmark
+    public void oldschool(Blackhole bh) {
+
+    	ExecutorService executor = Executors.newFixedThreadPool(parallelism);
+
+    	try {
+    		for(int i =0; i<ints.length; i++) {
+        		executor.submit(() -> {
+        			Blackhole.consumeCPU(compute);
+        		});
+        	}
+    	} catch (Exception e) {
+            throw new IllegalStateException(e);
+        } finally {
+    		executor.shutdown();
+    	}
+
     }
 }
