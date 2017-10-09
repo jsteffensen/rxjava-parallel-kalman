@@ -123,4 +123,13 @@ public class MyBenchmark implements Function<Integer, Integer> {
     	}
 
     }
+
+    @Benchmark
+    public void loopy(Blackhole bh) {
+
+		for(int i =0; i<ints.length; i++) {
+    		Blackhole.consumeCPU(compute);
+    	}
+
+    }
 }
