@@ -21,6 +21,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
@@ -42,11 +43,13 @@ public class MyBenchmark implements Function<Integer, Integer> {
     public int parallelism;
 
     Integer[] ints;
+    Integer[] moreints;
 
     Random randomNum = new Random();
 
     Flowable<Integer> parallel;
     Flowable<Integer> notsoparallel;
+    Flowable<Integer> zippedparallel;
 
     @Override
     public Integer apply(Integer t) throws Exception {
@@ -59,24 +62,32 @@ public class MyBenchmark implements Function<Integer, Integer> {
 
         final int cpu = parallelism;
         ints = new Integer[count];
+        moreints = new Integer[count];
+        //Arrays.fill(ints, 777);
 
         for(int i = 0; i<count; i++) {
         	ints[i] = randomNum.nextInt(2);
         }
-
-        Arrays.fill(ints, 777);
+        for(int i = 0; i<count; i++) {
+        	moreints[i] = randomNum.nextInt(2);
+        }
 
         Flowable<Integer> source = Flowable.fromArray(ints);
-
-        /*another = source.groupBy((i) -> 0 == (int)i % 2 ? "EVEN" : "ODD")
-                .subscribe((group) -> {
-                    System.out.println("Key " + ((GroupedFlowable<String,Integer>)group).getKey());
-                    ((GroupedFlowable<String,Integer>)group).subscribe((x) -> System.out.println(((GroupedFlowable<String,Integer>)group).getKey() + ": " + x));
-                });*/
+        Flowable<Integer> anothersource = Flowable.fromArray(moreints);
 
         parallel = source.parallel(cpu).runOn(Schedulers.computation()).map(this).sequential();
 
         notsoparallel = source.map(this);
+
+        zippedparallel = Flowable.zip(source, anothersource,
+                new BiFunction<Integer, Integer, Integer>() {
+
+					@Override
+					public Integer apply(Integer sourceInteger, Integer anothersourceInteger) throws Exception {
+						return sourceInteger + anothersourceInteger;
+					}
+
+        }).parallel(cpu).runOn(Schedulers.computation()).map(this).sequential();
 
 
     }
@@ -94,18 +105,23 @@ public class MyBenchmark implements Function<Integer, Integer> {
 		}
     }
 
-    @Benchmark
+    //@Benchmark
     public void parallel(Blackhole bh) {
         subscribe(parallel, bh);
     }
 
-    @Benchmark
+    //@Benchmark
     public void notsoparallel(Blackhole bh) {
         subscribe(notsoparallel, bh);
     }
 
-
     @Benchmark
+    public void zippedparallel(Blackhole bh) {
+        subscribe(zippedparallel, bh);
+    }
+
+
+    //@Benchmark
     public void oldschool(Blackhole bh) {
 
     	ExecutorService executor = Executors.newFixedThreadPool(parallelism);
@@ -124,7 +140,7 @@ public class MyBenchmark implements Function<Integer, Integer> {
 
     }
 
-    @Benchmark
+    //@Benchmark
     public void loopy(Blackhole bh) {
 
 		for(int i =0; i<ints.length; i++) {
