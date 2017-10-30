@@ -1,6 +1,5 @@
 package com.c2_systems.benchmark;
 
-import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -8,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -20,7 +18,6 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 import io.reactivex.Flowable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
@@ -33,7 +30,7 @@ import io.reactivex.schedulers.Schedulers;
 @State(Scope.Thread)
 public class MyBenchmark implements Function<Integer, Integer> {
 
-    @Param({"2000", "4000", "6000"}) //10000
+    @Param({"2000", "4000", "6000"})
     public int count;
 
     @Param({"50", "100", "250", "500", "1000"})
