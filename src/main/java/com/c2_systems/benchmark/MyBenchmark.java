@@ -1,21 +1,11 @@
 package com.c2_systems.benchmark;
 
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.math3.filter.DefaultMeasurementModel;
-import org.apache.commons.math3.filter.DefaultProcessModel;
-import org.apache.commons.math3.filter.KalmanFilter;
-import org.apache.commons.math3.filter.MeasurementModel;
-import org.apache.commons.math3.filter.ProcessModel;
-import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.ArrayRealVector;
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.random.JDKRandomGenerator;
-import org.apache.commons.math3.random.RandomGenerator;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Measurement;
@@ -39,7 +29,7 @@ import io.reactivex.schedulers.Schedulers;
 //@Fork(value = 1,jvmArgsAppend = { "-XX:MaxInlineLevel=20" })
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Thread)
-public class MyBenchmark implements Function<Integer, Integer> {
+public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
     @Param({"2000", "4000", "6000"})
     public int count;
@@ -50,102 +40,47 @@ public class MyBenchmark implements Function<Integer, Integer> {
     @Param({"3"})
     public int parallelism;
 
+    FilterObject[] filters;
     Integer[] ints;
-    Integer[] moreints;
 
     Random randomNum = new Random();
 
-    KalmanFilter kfilter;
-    RealVector u;
-    RealVector x;
-    RealMatrix A;
-    RealMatrix B;
-    RealMatrix H;
-    double dt;
-    double measurementNoise;
-    double accelNoise;
-
-    Flowable<Integer> parallel;
-    Flowable<Integer> notsoparallel;
-    Flowable<Integer> zippedparallel;
+    Flowable<FilterObject> parallel;
+    Flowable<FilterObject> notsoparallel;
+    Flowable<FilterObject> zippedparallel;
 
     @Override
-    public Integer apply(Integer t) throws Exception {
+	public FilterObject apply(FilterObject f) throws Exception {
 
-    	RandomGenerator rand = new JDKRandomGenerator();
-        RealVector tmpPNoise = new ArrayRealVector(new double[] { Math.pow(dt, 2d) / 2d, dt });
-        RealVector mNoise = new ArrayRealVector(1);
+		f.correct();
+		f.predict();
+		return f;
 
-        kfilter.predict(u);
-        RealVector pNoise = tmpPNoise.mapMultiply(accelNoise * rand.nextGaussian());
-        x = A.operate(x).add(B.operate(u)).add(pNoise);
-        mNoise.setEntry(0, measurementNoise * rand.nextGaussian());
-        RealVector z = H.operate(x).add(mNoise);
-
-        kfilter.correct(z);
-
-        Double position = kfilter.getStateEstimation()[0];
-        Double velocity = kfilter.getStateEstimation()[1];
-
-        return velocity.intValue();
-    }
+	}
 
     @Setup
     public void setup() {
 
         final int cpu = parallelism;
+        filters = new FilterObject[count];
         ints = new Integer[count];
-        moreints = new Integer[count];
-        //Arrays.fill(ints, 777);
-
-        for(int i = 0; i<count; i++) {
-        	ints[i] = randomNum.nextInt(2);
-        }
-        for(int i = 0; i<count; i++) {
-        	moreints[i] = randomNum.nextInt(2);
-        }
-
-        Flowable<Integer> source = Flowable.fromArray(ints);
-        Flowable<Integer> anothersource = Flowable.fromArray(moreints);
+        Arrays.fill(filters, new FilterObject());
+        Arrays.fill(ints, 777);
 
 
-        dt = 0.1d;
-        measurementNoise = 10d;
-        accelNoise = 0.2d;
-
-        A = new Array2DRowRealMatrix(new double[][] { { 1, dt }, { 0, 1 } });
-        B = new Array2DRowRealMatrix(new double[][] { { Math.pow(dt, 2d) / 2d }, { dt } });
-        H = new Array2DRowRealMatrix(new double[][] { { 1d, 0d } });
-        x = new ArrayRealVector(new double[] { 0, 0 });
-
-        RealMatrix tmp = new Array2DRowRealMatrix(new double[][] {
-            { Math.pow(dt, 4d) / 4d, Math.pow(dt, 3d) / 2d },
-            { Math.pow(dt, 3d) / 2d, Math.pow(dt, 2d) } });
-
-        RealMatrix Q = tmp.scalarMultiply(Math.pow(accelNoise, 2));
-
-        RealMatrix P0 = new Array2DRowRealMatrix(new double[][] { { 1, 1 }, { 1, 1 } });
-
-        RealMatrix R = new Array2DRowRealMatrix(new double[] { Math.pow(measurementNoise, 2) });
-
-        u = new ArrayRealVector(new double[] { 0.1d });
-
-        ProcessModel pm = new DefaultProcessModel(A, B, Q, x, P0);
-        MeasurementModel mm = new DefaultMeasurementModel(H, R);
-        kfilter = new KalmanFilter(pm, mm);
-
-
+        Flowable<FilterObject> source = Flowable.fromArray(filters);
+        Flowable<Integer> anothersource = Flowable.fromArray(ints);
 
         parallel = source.parallel(cpu).runOn(Schedulers.computation()).map(this).sequential();
 
         notsoparallel = source.map(this);
 
         zippedparallel = Flowable.zip(source, anothersource,
-                new BiFunction<Integer, Integer, Integer>() {
+                new BiFunction<FilterObject, Integer, FilterObject>() {
 
 					@Override
-					public Integer apply(Integer sourceInteger, Integer anothersourceInteger) throws Exception {
-						return sourceInteger + anothersourceInteger;
+					public FilterObject apply(FilterObject arg0, Integer arg1) throws Exception {
+						return arg0;
 					}
 
         }).parallel(cpu).runOn(Schedulers.computation()).map(this).sequential();
@@ -154,9 +89,9 @@ public class MyBenchmark implements Function<Integer, Integer> {
     }
 
 
-    void subscribe(Flowable<Integer> f, Blackhole bh) {
+    void subscribe(Flowable<FilterObject> parallel2, Blackhole bh) {
         PerfAsyncConsumer consumer = new PerfAsyncConsumer(bh);
-        f.subscribe(consumer);
+        parallel2.subscribe(consumer);
         consumer.await(count);
     }
 
@@ -201,12 +136,4 @@ public class MyBenchmark implements Function<Integer, Integer> {
 
     }
 
-    //@Benchmark
-    public void loopy(Blackhole bh) {
-
-		for(int i =0; i<ints.length; i++) {
-    		Blackhole.consumeCPU(compute);
-    	}
-
-    }
 }
