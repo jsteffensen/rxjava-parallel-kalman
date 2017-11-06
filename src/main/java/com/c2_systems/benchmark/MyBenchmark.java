@@ -64,7 +64,10 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
         final int cpu = parallelism;
         filters = new FilterObject[count];
         ints = new Integer[count];
-        Arrays.fill(filters, new FilterObject());
+
+        for(int i = 0; i < count; i++) {
+        	filters[i] = new FilterObject();
+        }
         Arrays.fill(ints, 777);
 
 
@@ -88,17 +91,10 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
     }
 
-
     void subscribe(Flowable<FilterObject> parallel2, Blackhole bh) {
         PerfAsyncConsumer consumer = new PerfAsyncConsumer(bh);
         parallel2.subscribe(consumer);
         consumer.await(count);
-    }
-
-    public void other(Blackhole bh) {
-    	for(int i = 0; i<count; i++) {
-			Blackhole.consumeCPU(compute);
-		}
     }
 
     //@Benchmark
@@ -123,9 +119,9 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     	ExecutorService executor = Executors.newFixedThreadPool(parallelism);
 
     	try {
-    		for(int i =0; i<ints.length; i++) {
+    		for(int i = 0; i<count; i++) {
         		executor.submit(() -> {
-        			Blackhole.consumeCPU(compute);
+
         		});
         	}
     	} catch (Exception e) {
