@@ -32,11 +32,8 @@ import io.reactivex.schedulers.Schedulers;
 @State(Scope.Thread)
 public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
-    @Param({"2000", "4000", "6000"})
+    @Param({"2000", "4000", "6000", "8000", "10000"})
     public int count;
-
-    @Param({"50", "100", "250", "500", "1000"})
-    public int compute;
 
     @Param({"4"})
     public int parallelism;
@@ -98,12 +95,12 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
         consumer.await(count);
     }
 
-    //@Benchmark
+    @Benchmark
     public void parallel(Blackhole bh) {
         subscribe(parallel, bh);
     }
 
-    //@Benchmark
+    @Benchmark
     public void notsoparallel(Blackhole bh) {
         subscribe(notsoparallel, bh);
     }
@@ -114,7 +111,7 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     }
 
 
-    //@Benchmark
+    @Benchmark
     public void oldschool(Blackhole bh) {
 
     	ExecutorService executor = Executors.newFixedThreadPool(parallelism);
