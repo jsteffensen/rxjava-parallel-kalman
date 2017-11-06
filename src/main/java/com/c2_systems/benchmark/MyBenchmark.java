@@ -38,7 +38,7 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     @Param({"50", "100", "250", "500", "1000"})
     public int compute;
 
-    @Param({"3"})
+    @Param({"4"})
     public int parallelism;
 
     FilterObject[] filters;
