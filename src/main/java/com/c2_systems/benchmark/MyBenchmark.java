@@ -27,15 +27,15 @@ import io.reactivex.schedulers.Schedulers;
 @BenchmarkMode(Mode.Throughput)
 @Warmup(iterations = 5)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Fork(value = 0)
+@Fork(value = 1)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Thread)
 public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
-    @Param({"2000", "4000", "6000", "8000", "10000"})
+    @Param({"500", "1000", "2000"})
     public int count;
 
-    @Param({"4"})
+    @Param({"2"})
     public int parallelism;
 
     FilterObject[] filters;
@@ -48,10 +48,15 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     Flowable<FilterObject> zippedparallel;
 
     @Override
-	public FilterObject apply(FilterObject f) throws Exception {
+	public FilterObject apply(FilterObject f) {
 
-		f.correct();
-		f.predict();
+		try {
+			f.correct();
+			f.predict();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return f;
 
 	}
@@ -117,9 +122,10 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     	ExecutorService executor = Executors.newFixedThreadPool(parallelism);
 
     	try {
-    		for(int i = 0; i<count; i++) {
+    		for(int i =0; i<filters.length; i++) {
+    			FilterObject f = filters[i];
         		executor.submit(() -> {
-
+        			bh.consume( apply(f) );
         		});
         	}
     	} catch (Exception e) {
@@ -128,6 +134,14 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     		executor.shutdown();
     	}
 
+    }
+
+    @Benchmark
+    public void loopy(Blackhole bh) {
+
+		for(int i =0; i<filters.length; i++) {
+			bh.consume( apply(filters[i]) );
+    	}
     }
 
 }
