@@ -50,13 +50,9 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     @Override
 	public FilterObject apply(FilterObject f) {
 
-		try {
-			f.correct();
-			f.predict();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		f.correct();
+		f.predict();
+
 		return f;
 
 	}
