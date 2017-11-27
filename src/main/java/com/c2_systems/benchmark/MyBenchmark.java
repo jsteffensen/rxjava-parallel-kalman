@@ -100,17 +100,17 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
         consumer.await(count);
     }
 
-    @Benchmark
+    //@Benchmark
     public void parallel(Blackhole bh) {
         subscribe(parallel, bh);
     }
 
-    @Benchmark
+    //@Benchmark
     public void notsoparallel(Blackhole bh) {
         subscribe(notsoparallel, bh);
     }
 
-    @Benchmark
+    //@Benchmark
     public void zippedparallel(Blackhole bh) {
         subscribe(zippedparallel, bh);
     }
@@ -134,7 +134,7 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
     }
 
-    @Benchmark
+    //@Benchmark
     public void loopy(Blackhole bh) {
 
 		for(int i =0; i<filters.length; i++) {
