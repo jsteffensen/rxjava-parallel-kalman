@@ -27,7 +27,7 @@ import io.reactivex.schedulers.Schedulers;
 @BenchmarkMode(Mode.Throughput)
 @Warmup(iterations = 5)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
-@Fork(value = 1)
+@Fork(value = 0)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Thread)
 public class MyBenchmark implements Function<FilterObject, FilterObject> {
