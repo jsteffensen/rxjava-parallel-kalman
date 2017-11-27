@@ -35,7 +35,7 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     @Param({"500", "1000", "2000"})
     public int count;
 
-    @Param({"2"})
+    @Param({"8"})
     public int parallelism;
 
     FilterObject[] filters;
@@ -46,6 +46,8 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
     Flowable<FilterObject> parallel;
     Flowable<FilterObject> notsoparallel;
     Flowable<FilterObject> zippedparallel;
+
+    ExecutorService executor;
 
     @Override
 	public FilterObject apply(FilterObject f) {
@@ -59,6 +61,8 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
     @Setup
     public void setup() {
+
+    	executor = Executors.newFixedThreadPool(parallelism);
 
         final int cpu = parallelism;
         filters = new FilterObject[count];
@@ -114,8 +118,6 @@ public class MyBenchmark implements Function<FilterObject, FilterObject> {
 
     @Benchmark
     public void oldschool(Blackhole bh) {
-
-    	ExecutorService executor = Executors.newFixedThreadPool(parallelism);
 
     	try {
     		for(int i =0; i<filters.length; i++) {
